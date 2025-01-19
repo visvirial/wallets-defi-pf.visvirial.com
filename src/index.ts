@@ -62,7 +62,7 @@ export default {
 				return new Response('User already exists', { status: 409 });
 			}
 			// Create a new user.
-			const passwordhash = await bcrypt.hash(body.password, 10);
+			const passwordHash = await bcrypt.hash(body.password, 10);
 			//console.log('Password hash:', passwordHash);
 			const data = {
 				passwordHash,
