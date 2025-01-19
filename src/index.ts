@@ -53,6 +53,16 @@ export const decrypt = (ciphertext: string, password: string): Promise<string> =
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
+		// Handle OPTIONS requests.
+		if(request.method === 'OPTIONS') {
+			return new Response(null, {
+				headers: {
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Allow-Methods': 'GET, POST, HEAD, OPTIONS',
+				},
+			});
+		}
+		// Read arguments.
 		const url = new URL(request.url);
 		const method = request.method;
 		const body = await (async () => {
