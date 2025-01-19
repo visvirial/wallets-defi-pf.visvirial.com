@@ -19,7 +19,7 @@
     "wrangler": "^3.103.2"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "tsx": "^4.19.2"
+    "aes-js": "^3.1.2",
+    "bcryptjs": "^2.4.3"
   }
 }

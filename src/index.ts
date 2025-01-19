@@ -11,7 +11,10 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+import crypto from 'crypto';
+
 import bcrypt from 'bcryptjs';
+import aesjs from 'aes-js';
 
 export const authorize = async (env: Env, body: any): Promise<boolean> => {
 	const data = await env.WALLETS.get(body.email);
@@ -20,6 +23,32 @@ export const authorize = async (env: Env, body: any): Promise<boolean> => {
 	}
 	const json = JSON.parse(data);
 	return await bcrypt.compare(body.password, json.passwordHash);
+};
+
+const SALT = 'wallets-defi-pf.visvirial.com';
+
+export const getKey = (password: string): Buffer => {
+	const key = crypto.pbkdf2Sync(password, SALT, 100000, 32, 'sha256');
+	return key;
+}
+
+export const encrypt = (plaintext: string, password: string): Promise<string> => {
+	const key = getKey(password);
+	const iv = crypto.randomBytes(16);
+	const plaintextBytes = aesjs.utils.utf8.toBytes(plaintext);
+	const aesCbc = new aesjs.ModeOfOperation.ctr(key, iv);
+	const encryptedBytes = aesCbc.encrypt(plaintextBytes);
+	const encryptedHex = iv.toString('hex') + aesjs.utils.hex.fromBytes(encryptedBytes);
+	return encryptedHex;
+};
+
+export const decrypt = (ciphertext: string, password: string): Promise<string> => {
+	const key = getKey(password);
+	const encryptedBytes = aesjs.utils.hex.toBytes(ciphertext);
+	const aesCbc = new aesjs.ModeOfOperation.ctr(key, encryptedBytes.slice(0, 16));
+	const decryptedBytes = aesCbc.decrypt(encryptedBytes.slice(16));
+	const decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes);
+	return decryptedText;
 };
 
 export default {
@@ -66,7 +95,6 @@ export default {
 			//console.log('Password hash:', passwordHash);
 			const data = {
 				passwordHash,
-				wallets: '',
 			};
 			await env.WALLETS.put(body.email, JSON.stringify(data));
 			return new Response('User created', { status: 201 });
@@ -93,7 +121,12 @@ export default {
 			}
 			const data = await env.WALLETS.get(body.email);
 			const json = JSON.parse(data);
-			return new Response(json.wallets);
+			const walletsEncrypted = json.wallets;
+			if(!walletsEncrypted) {
+				return new Response('Wallets not set', { status: 404 });
+			}
+			const wallets = decrypt(walletsEncrypted, body.password);
+			return new Response(wallets);
 		} else if(url.pathname === '/set' && method === 'POST') {
 			// POST /set.
 			// Check if the wallets parameter is set.
@@ -106,17 +139,9 @@ export default {
 			// Set the wallets.
 			const data = await env.WALLETS.get(body.email);
 			const json = JSON.parse(data);
-			json.wallets = body.wallets;
+			json.wallets = encrypt(body.wallets, body.password);
 			await env.WALLETS.put(body.email, JSON.stringify(json));
 			return new Response('Wallets set');
-		} else if(url.pathname === '/get' && method === 'GET') {
-			// GET /get.
-			if(!await authorize(env, body)) {
-				return new Response('Unauthorized', { status: 401 });
-			}
-			const data = await env.WALLETS.get(body.email);
-			const json = JSON.parse(data);
-			return new Response(json.wallets);
 		} else {
 			return new Response('Not found', { status: 404 });
 		}
