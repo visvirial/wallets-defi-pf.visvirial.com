@@ -1,7 +1,7 @@
 
 import fs from 'fs/promises';
 
-const URL_PREFIX = 'https://wallets.defi-portfolio.visvirial.com';
+const URL_PREFIX = 'https://wallets-defi-pf.visvirial.com';
 
 export const main = async () => {
 	if(process.argv.length < 3) {

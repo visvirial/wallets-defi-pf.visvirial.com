@@ -13,7 +13,7 @@
   },
   "routes": [
     {
-      "pattern": "wallets.defi-pf.visvirial.com",
+      "pattern": "wallets-defi-pf.visvirial.com",
       "custom_domain": true
     }
   ],
