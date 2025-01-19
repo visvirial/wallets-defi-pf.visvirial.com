@@ -108,6 +108,7 @@ export default {
 			const json = JSON.parse(data);
 			json.wallets = body.wallets;
 			await env.WALLETS.put(body.email, JSON.stringify(json));
+			return new Response('Wallets set');
 		} else if(url.pathname === '/get' && method === 'GET') {
 			// GET /get.
 			if(!await authorize(env, body)) {
