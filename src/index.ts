@@ -51,16 +51,38 @@ export const decrypt = (ciphertext: string, password: string): Promise<string> =
 	return decryptedText;
 };
 
+export const respond = (...args): Response => {
+	const response = new Response(...args);
+	response.headers.set('Access-Control-Allow-Origin', '*');
+	response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+	return response;
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		// Handle OPTIONS requests.
 		if(request.method === 'OPTIONS') {
-			return new Response(null, {
-				headers: {
-					'Access-Control-Allow-Origin': '*',
-					'Access-Control-Allow-Methods': 'GET, POST, HEAD, OPTIONS',
-				},
-			});
+			if (
+				request.headers.get('Origin') !== null &&
+				request.headers.get('Access-Control-Request-Method') !== null &&
+				request.headers.get('Access-Control-Request-Headers') !== null
+			) {
+				// Handle CORS preflight requests.
+				return new Response(null, {
+					headers: {
+						'Access-Control-Allow-Origin': '*',
+						'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
+						'Access-Control-Allow-Headers': request.headers.get('Access-Control-Request-Headers'),
+					},
+				});
+			} else {
+				// Handle standard OPTIONS request.
+				return new Response(null, {
+					headers: {
+						Allow: 'GET, HEAD, POST, OPTIONS',
+					},
+				});
+			}
 		}
 		// Read arguments.
 		const url = new URL(request.url);
@@ -78,7 +100,7 @@ export default {
 					const body = await new Response(request.body).json();
 					return body;
 				} catch (e) {
-					return new Response('Invalid JSON', { status: 400 });
+					return respond('Invalid JSON', { status: 400 });
 				}
 			}
 		})();
@@ -86,11 +108,11 @@ export default {
 		if(body) {
 			// Check if the email parameter is set.
 			if(!body.email) {
-				return new Response('Parameter "email" not set.', { status: 400 });
+				return respond('Parameter "email" not set.', { status: 400 });
 			}
 			// Check if the password parameter is set.
 			if(!body.password) {
-				return new Response('Parameter "password" not set.', { status: 400 });
+				return respond('Parameter "password" not set.', { status: 400 });
 			}
 		}
 		if(url.pathname === '/register' && method === 'POST') {
@@ -98,7 +120,7 @@ export default {
 			// If the user already exists, return 409.
 			const _data = await env.WALLETS.get(body.email);
 			if(_data) {
-				return new Response('User already exists', { status: 409 });
+				return respond('User already exists', { status: 409 });
 			}
 			// Create a new user.
 			const passwordHash = await bcrypt.hash(body.password, 10);
@@ -107,15 +129,15 @@ export default {
 				passwordHash,
 			};
 			await env.WALLETS.put(body.email, JSON.stringify(data));
-			return new Response('User created', { status: 201 });
+			return respond('User created', { status: 201 });
 		} else if(url.pathname === '/changepw' && method === 'POST') {
 			// POST /changepw.
 			// Check if the newPassword parameter is set.
 			if(!body.newPassword) {
-				return new Response('Parameter "newPassword" not set.', { status: 400 });
+				return respond('Parameter "newPassword" not set.', { status: 400 });
 			}
 			if(!await authorize(env, body)) {
-				return new Response('Unauthorized', { status: 401 });
+				return respond('Unauthorized', { status: 401 });
 			}
 			// Change the password.
 			const passwordHash = await bcrypt.hash(body.newPassword, 10);
@@ -123,37 +145,37 @@ export default {
 			const json = JSON.parse(data);
 			json.passwordHash = passwordHash;
 			await env.WALLETS.put(body.email, JSON.stringify(json));
-			return new Response('Password changed');
+			return respond('Password changed');
 		} else if(url.pathname === '/get' && method === 'GET') {
 			// GET /get.
 			if(!await authorize(env, body)) {
-				return new Response('Unauthorized', { status: 401 });
+				return respond('Unauthorized', { status: 401 });
 			}
 			const data = await env.WALLETS.get(body.email);
 			const json = JSON.parse(data);
 			const walletsEncrypted = json.wallets;
 			if(!walletsEncrypted) {
-				return new Response('Wallets not set', { status: 404 });
+				return respond('Wallets not set', { status: 404 });
 			}
 			const wallets = decrypt(walletsEncrypted, body.password);
-			return new Response(wallets);
+			return respond(wallets);
 		} else if(url.pathname === '/set' && method === 'POST') {
 			// POST /set.
 			// Check if the wallets parameter is set.
 			if(!body.wallets) {
-				return new Response('Parameter "wallets" not set.', { status: 400 });
+				return respond('Parameter "wallets" not set.', { status: 400 });
 			}
 			if(!await authorize(env, body)) {
-				return new Response('Unauthorized', { status: 401 });
+				return respond('Unauthorized', { status: 401 });
 			}
 			// Set the wallets.
 			const data = await env.WALLETS.get(body.email);
 			const json = JSON.parse(data);
 			json.wallets = encrypt(body.wallets, body.password);
 			await env.WALLETS.put(body.email, JSON.stringify(json));
-			return new Response('Wallets set');
+			return respond('Wallets set');
 		} else {
-			return new Response('Not found', { status: 404 });
+			return respond('Not found', { status: 404 });
 		}
 	},
 } satisfies ExportedHandler<Env>;
