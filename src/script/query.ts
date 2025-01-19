@@ -1,7 +1,7 @@
 
 import fs from 'fs/promises';
 
-const URL_PREFIX = 'https://wallets-defi-pf.visvirial.com';
+const WALLETS_URL = process.env.WALLETS_URL || 'https://wallets-defi-pf.visvirial.com';
 
 export const main = async () => {
 	if(process.argv.length < 3) {
@@ -17,7 +17,7 @@ export const main = async () => {
 		}
 		const email = args[0];
 		const password = args[1];
-		const response = await fetch(`${URL_PREFIX}/register`, {
+		const response = await fetch(`${WALLETS_URL}/register`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ export const main = async () => {
 		const email = args[0];
 		const password = args[1];
 		const newPassword = args[2];
-		const response = await fetch(`${URL_PREFIX}/changepw`, {
+		const response = await fetch(`${WALLETS_URL}/changepw`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ export const main = async () => {
 		const params = new URLSearchParams();
 		params.append('email', email);
 		params.append('password', password);
-		const response = await fetch(`${URL_PREFIX}/get?${params.toString()}`);
+		const response = await fetch(`${WALLETS_URL}/get?${params.toString()}`);
 		console.log(await response.text());
 	} else if(method === 'set') {
 		if(args.length < 3) {
@@ -69,7 +69,7 @@ export const main = async () => {
 		const password = args[1];
 		const walletFile = args[2];
 		const wallets = await fs.readFile(walletFile, 'utf8');
-		const response = await fetch(`${URL_PREFIX}/set`, {
+		const response = await fetch(`${WALLETS_URL}/set`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
