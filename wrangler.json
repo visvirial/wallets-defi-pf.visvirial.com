@@ -4,12 +4,26 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "wallets",
+  "name": "wallets-defi-portfolio",
   "main": "src/index.ts",
+  "compatibility_flags": ["nodejs_compat"],
   "compatibility_date": "2025-01-09",
   "observability": {
     "enabled": true
-  }
+  },
+  "routes": [
+    {
+      "pattern": "wallets.defi-pf.visvirial.com",
+      "custom_domain": true
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "WALLETS",
+      "id": "0bcc89c2a2944581a1b1168b4d39e5f8",
+      "preview_id": "0bcc89c2a2944581a1b1168b4d39e5f8"
+    }
+  ],
   /**
    * Smart Placement
    * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
